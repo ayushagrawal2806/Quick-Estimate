@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 export interface ExtractedRow {
@@ -6,10 +5,12 @@ export interface ExtractedRow {
   pcs: number;
   rate: number;
 }
-
-export const extractEstimateData = async (base64Image: string): Promise<ExtractedRow[]> => {
+//
+export const extractEstimateData = async (
+  base64Image: string,
+): Promise<ExtractedRow[]> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+
   const prompt = `You are an OCR expert for a billing sheet. 
   The sheet has fixed rows based on "Size in Feet" (e.g., 6, 6.5, 8, 10, and 12) and their corresponding "Size in Meter" values.
   
@@ -23,15 +24,15 @@ export const extractEstimateData = async (base64Image: string): Promise<Extracte
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: "gemini-3-flash-preview",
       contents: [
         {
           parts: [
             { text: prompt },
             {
               inlineData: {
-                mimeType: 'image/jpeg',
-                data: base64Image.split(',')[1] || base64Image,
+                mimeType: "image/jpeg",
+                data: base64Image.split(",")[1] || base64Image,
               },
             },
           ],
@@ -47,8 +48,15 @@ export const extractEstimateData = async (base64Image: string): Promise<Extracte
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  sizeFt: { type: Type.NUMBER, description: "The size in feet this row belongs to (e.g. 6, 6.5, 8, 10, or 12)" },
-                  pcs: { type: Type.NUMBER, description: "Handwritten PCS count" },
+                  sizeFt: {
+                    type: Type.NUMBER,
+                    description:
+                      "The size in feet this row belongs to (e.g. 6, 6.5, 8, 10, or 12)",
+                  },
+                  pcs: {
+                    type: Type.NUMBER,
+                    description: "Handwritten PCS count",
+                  },
                   rate: { type: Type.NUMBER, description: "Handwritten Rate" },
                 },
                 required: ["sizeFt", "pcs", "rate"],
