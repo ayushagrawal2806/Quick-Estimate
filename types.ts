@@ -1,16 +1,13 @@
 
-export interface EstimateItem {
-  id: string;
-  sizeFt: number;
-  sizeMeter: number;
-  pcs: number;
-  rate: number;
-  total: number;
+export interface RowData {
+  id: number;
+  sizeFt: number; // Column A
+  sizeM: number;  // Column B
+  pcs: number;    // Column C
+  rate: number;   // Column E
 }
 
-export interface EstimateData {
-  items: EstimateItem[];
-  grandTotal: number;
-  customerName?: string;
-  date?: string;
+export interface CalculatedRow extends RowData {
+  totalRunningMeter: number; // Column D (B * C)
+  totalAmount: number;       // Column F (D * E)
 }

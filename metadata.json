@@ -1,6 +1,5 @@
 
 {
-  "name": "QuickEstimate - Personal Calculator",
-  "description": "A streamlined personal billing calculator for fixed-size material estimates.",
-  "requestFramePermissions": []
+  "name": "Running Meter Price Calculator",
+  "description": "A professional calculator for estimating costs based on running meters with fixed size presets, dynamic quantity inputs, and synchronized rate management."
 }

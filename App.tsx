@@ -1,122 +1,278 @@
+import React, { useState, useMemo } from "react";
+import { RowData, CalculatedRow } from "./types";
+import {
+  Calculator,
+  Hash,
+  Ruler,
+  Trash2,
+  IndianRupee,
+  MoveRight,
+} from "lucide-react";
 
-import React, { useState, useCallback } from 'react';
-import { EstimateItem } from './types';
-import EstimateTable from './components/EstimateTable';
-
-export const SIZE_OPTIONS = [
-  { ft: 6, meter: 1.75 },
-  { ft: 6.5, meter: 2 },
-  { ft: 8, meter: 2.5 },
-  { ft: 10, meter: 3 },
-  { ft: 12, meter: 3.6 },
+const INITIAL_ROWS: RowData[] = [
+  { id: 1, sizeFt: 6, sizeM: 1.75, pcs: 0, rate: 0 },
+  { id: 2, sizeFt: 6.5, sizeM: 2, pcs: 0, rate: 0 },
+  { id: 3, sizeFt: 8, sizeM: 2.5, pcs: 0, rate: 0 },
+  { id: 4, sizeFt: 10, sizeM: 3, pcs: 0, rate: 0 },
+  { id: 5, sizeFt: 12, sizeM: 3.6, pcs: 0, rate: 0 },
 ];
 
 const App: React.FC = () => {
-  // Start with an empty list as requested
-  const [items, setItems] = useState<EstimateItem[]>([]);
-  
-  const calculateGrandTotal = useCallback(() => {
-    return items.reduce((sum, item) => sum + item.total, 0);
-  }, [items]);
+  const [rows, setRows] = useState<RowData[]>(INITIAL_ROWS);
 
-  const updateItem = (id: string, updates: Partial<EstimateItem>) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const merged = { ...item, ...updates };
-        // Formula: sizeMeter * pcs * rate
-        merged.total = merged.sizeMeter * (merged.pcs || 0) * (merged.rate || 0);
-        return merged;
-      }
-      return item;
-    }));
+  const calculatedRows = useMemo<CalculatedRow[]>(() => {
+    return rows.map((row) => {
+      const totalRunningMeter = Number((row.sizeM * row.pcs).toFixed(2));
+      const totalAmount = Number((totalRunningMeter * row.rate).toFixed(2));
+      return {
+        ...row,
+        totalRunningMeter,
+        totalAmount,
+      };
+    });
+  }, [rows]);
+
+  const grandTotal = useMemo(() => {
+    return calculatedRows.reduce((sum, row) => sum + row.totalAmount, 0);
+  }, [calculatedRows]);
+
+  const handleInputChange = (
+    id: number,
+    field: "pcs" | "rate",
+    val: string,
+  ) => {
+    // Treat empty string as 0, but allow decimal input
+    const num = val === "" ? 0 : parseFloat(val);
+    setRows((prev) =>
+      prev.map((row) =>
+        row.id === id ? { ...row, [field]: isNaN(num) ? 0 : num } : row,
+      ),
+    );
   };
 
-  const addRow = () => {
-    const defaultSize = SIZE_OPTIONS[0];
-    const newItem: EstimateItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      sizeFt: defaultSize.ft,
-      sizeMeter: defaultSize.meter,
-      pcs: 0,
-      rate: 0,
-      total: 0
-    };
-    setItems(prev => [...prev, newItem]);
-  };
-
-  const removeRow = (id: string) => {
-    setItems(prev => prev.filter(item => item.id !== id));
+  const resetAll = () => {
+    setRows(INITIAL_ROWS);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 no-print">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">Q</div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">QuickEstimate</h1>
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-32">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-100">
+              <Calculator className="text-white w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="font-bold text-xl tracking-tight text-slate-800">
+                Meter Calc
+              </h1>
+              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                Professional Estimator
+              </p>
+            </div>
           </div>
-          {/* Print and Clear buttons removed as requested */}
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">
+              Grand Total
+            </p>
+            <p className="text-2xl font-black text-indigo-600 flex items-center justify-end">
+              <span className="text-lg mr-0.5">₹</span>
+              {grandTotal.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </p>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10">
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200 overflow-hidden">
-          <div className="p-10 border-b border-slate-100 bg-slate-50/50">
-            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Billing Calculator</h2>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Personal Calculation Sheet</p>
-            <p className="text-slate-400 text-xs mt-4">Date: {new Date().toLocaleDateString()}</p>
-          </div>
-
-          <div className="p-0 sm:p-6">
-            {items.length > 0 ? (
-              <EstimateTable 
-                items={items} 
-                onUpdate={updateItem}
-                onAddRow={addRow}
-                onRemoveRow={removeRow}
-              />
-            ) : (
-              <div className="py-20 text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-100 rounded-full mb-4 text-slate-300">
-                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
+      <main className="max-w-5xl mx-auto px-4 mt-8">
+        {/* Unified Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {calculatedRows.map((row) => (
+            <div
+              key={row.id}
+              className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all overflow-hidden"
+            >
+              {/* Card Header */}
+              <div className="bg-slate-50 px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                    <Ruler className="w-4 h-4 text-indigo-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-lg">
+                      {row.sizeFt}{" "}
+                      <span className="text-sm font-normal text-slate-400">
+                        ft
+                      </span>
+                    </h3>
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-tighter">
+                      {row.sizeM}m Constant
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-700">No items added</h3>
-                <p className="text-slate-500 mb-6">Click the button below to start adding rows</p>
-                <button 
-                  onClick={addRow}
-                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95"
-                >
-                  Add First Row
-                </button>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    Subtotal
+                  </p>
+                  <p className="font-bold text-indigo-600 text-lg">
+                    ₹
+                    {row.totalAmount.toLocaleString("en-IN", {
+                      minimumFractionDigits: 2,
+                    })}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
 
-          {items.length > 0 && (
-            <div className="p-12 bg-slate-900 text-white">
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-12">
-                  <span className="text-2xl font-black uppercase tracking-tighter text-indigo-400">Total Amount</span>
-                  <span className="text-6xl font-black mono tracking-tighter">₹{calculateGrandTotal().toLocaleString()}</span>
+              {/* Card Body */}
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Pieces Input */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase font-bold text-slate-500 flex items-center gap-1.5 ml-1">
+                      <Hash className="w-3 h-3 text-indigo-400" /> Pieces
+                    </label>
+                    <input
+                      type="number"
+                      value={row.pcs === 0 ? "" : row.pcs}
+                      onChange={(e) =>
+                        handleInputChange(row.id, "pcs", e.target.value)
+                      }
+                      placeholder="0"
+                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-base font-bold text-slate-800 placeholder:text-slate-300"
+                    />
+                  </div>
+
+                  {/* Rate Input */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] uppercase font-bold text-slate-500 flex items-center gap-1.5 ml-1">
+                      <IndianRupee className="w-3 h-3 text-emerald-500" /> Rate
+                    </label>
+                    <input
+                      type="number"
+                      value={row.rate === 0 ? "" : row.rate}
+                      onChange={(e) =>
+                        handleInputChange(row.id, "rate", e.target.value)
+                      }
+                      placeholder="0.00"
+                      className="w-full px-4 py-3 border-2 border-slate-100 rounded-xl bg-slate-50/50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-base font-bold text-slate-800 placeholder:text-slate-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Expanded Rate Summary with all details */}
+                <div className="space-y-2 py-3 px-4 bg-indigo-50/50 rounded-xl border border-indigo-100/50">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                      Full Calculation Breakdown
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1 mt-1">
+                    {/* Step 1: Running Meter Calculation */}
+                    <div className="flex justify-between items-center text-xs font-medium">
+                      <div className="flex items-center gap-1 text-slate-500">
+                        <span>{row.sizeM}m</span>
+                        <span className="text-[10px]">×</span>
+                        <span>{row.pcs || 0} pcs</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MoveRight size={10} className="text-indigo-300" />
+                        <span className="font-mono text-indigo-700 font-bold">
+                          {row.totalRunningMeter.toFixed(2)}m
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Step 2: Amount Calculation */}
+                    <div className="flex justify-between items-center text-xs font-medium border-t border-indigo-100/50 pt-1 mt-1">
+                      <div className="flex items-center gap-1 text-slate-500">
+                        <span>{row.totalRunningMeter.toFixed(2)}m</span>
+                        <span className="text-[10px]">×</span>
+                        <span>₹{row.rate || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MoveRight size={10} className="text-indigo-300" />
+                        <span className="font-bold text-emerald-600">
+                          ₹
+                          {row.totalAmount.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          ))}
+        </div>
+
+        {/* Action Footer */}
+        <div className="mt-12 flex flex-col items-center gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm max-w-2xl w-full flex gap-4">
+            <div className="shrink-0">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold">
+                i
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1">
+                How it works
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                The calculator takes the{" "}
+                <span className="font-bold text-slate-700">Size (meters)</span>{" "}
+                and multiplies it by the{" "}
+                <span className="font-bold text-slate-700">Pieces</span> to find
+                the total{" "}
+                <span className="font-bold text-slate-700">Running Meters</span>
+                . This is then multiplied by your{" "}
+                <span className="font-bold text-slate-700">
+                  Rate (per meter)
+                </span>{" "}
+                to give the total for that row.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={resetAll}
+            className="flex items-center gap-2 px-8 py-3 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 text-slate-600 hover:text-rose-600 rounded-xl font-bold transition-all shadow-sm active:scale-95 group"
+          >
+            <Trash2 size={18} className="group-hover:animate-pulse" />
+            Reset All Fields
+          </button>
         </div>
       </main>
 
-      <button 
-        onClick={addRow}
-        className="fixed bottom-10 right-10 w-16 h-16 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 no-print z-30"
-        title="Add Row"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-        </svg>
-      </button>
+      {/* Persistent Grand Total Summary */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-6 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-30">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-6">
+          <div className="hidden sm:block">
+            <h5 className="text-[10px] uppercase font-black text-slate-400 tracking-widest">
+              Estimation Summary
+            </h5>
+            <p className="text-slate-500 text-xs">
+              Dynamic Calculation • All items are autosaved
+            </p>
+          </div>
+          <div className="flex-1 sm:flex-initial text-center sm:text-right">
+            <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-0.5">
+              Grand Total Amount
+            </span>
+            <span className="text-3xl font-black text-indigo-600 tracking-tight">
+              ₹
+              {grandTotal.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
