@@ -67,11 +67,21 @@ const App: React.FC = () => {
   ) => {
     // Treat empty string as 0, but allow decimal input
     const num = val === "" ? 0 : parseFloat(val);
-    setRows((prev) =>
-      prev.map((row) =>
+    setRows((prev) => {
+      const updated = prev.map((row) =>
         row.id === id ? { ...row, [field]: isNaN(num) ? 0 : num } : row,
-      ),
-    );
+      );
+
+      // If rate is being changed in rows 1-4, sync it to all other rows in that group
+      if (field === "rate" && id >= 1 && id <= 4) {
+        const syncRate = isNaN(num) ? 0 : num;
+        return updated.map((row) =>
+          row.id >= 1 && row.id <= 4 ? { ...row, rate: syncRate } : row,
+        );
+      }
+
+      return updated;
+    });
   };
 
   const resetAll = () => {
