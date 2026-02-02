@@ -9,6 +9,18 @@ import {
   MoveRight,
 } from "lucide-react";
 
+// CSS to hide number input spinners
+const hideSpinnerStyles = `
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+`;
+
 const INITIAL_ROWS: RowData[] = [
   { id: 1, sizeFt: 6, sizeM: 1.75, pcs: 0, rate: 0 },
   { id: 2, sizeFt: 6.5, sizeM: 2, pcs: 0, rate: 0 },
@@ -36,6 +48,18 @@ const App: React.FC = () => {
     return calculatedRows.reduce((sum, row) => sum + row.totalAmount, 0);
   }, [calculatedRows]);
 
+  const totalMetersExcept36 = useMemo(() => {
+    return calculatedRows
+      .filter((row) => row.sizeM !== 3.6)
+      .reduce((sum, row) => sum + row.totalRunningMeter, 0);
+  }, [calculatedRows]);
+
+  const totalMeters36 = useMemo(() => {
+    return calculatedRows
+      .filter((row) => row.sizeM === 3.6)
+      .reduce((sum, row) => sum + row.totalRunningMeter, 0);
+  }, [calculatedRows]);
+
   const handleInputChange = (
     id: number,
     field: "pcs" | "rate",
@@ -56,6 +80,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-32">
+      <style>{hideSpinnerStyles}</style>
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -250,26 +275,48 @@ const App: React.FC = () => {
 
       {/* Persistent Grand Total Summary */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-6 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-30">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-6">
-          <div className="hidden sm:block">
-            <h5 className="text-[10px] uppercase font-black text-slate-400 tracking-widest">
-              Estimation Summary
-            </h5>
-            <p className="text-slate-500 text-xs">
-              Dynamic Calculation • All items are autosaved
-            </p>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between gap-6 mb-4">
+            <div className="hidden sm:block">
+              <h5 className="text-[10px] uppercase font-black text-slate-400 tracking-widest">
+                Estimation Summary
+              </h5>
+              <p className="text-slate-500 text-xs">
+                Dynamic Calculation • All items are autosaved
+              </p>
+            </div>
+            <div className="flex-1 sm:flex-initial text-center sm:text-right">
+              <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-0.5">
+                Grand Total Amount
+              </span>
+              <span className="text-3xl font-black text-indigo-600 tracking-tight">
+                ₹
+                {grandTotal.toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
           </div>
-          <div className="flex-1 sm:flex-initial text-center sm:text-right">
-            <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest block mb-0.5">
-              Grand Total Amount
-            </span>
-            <span className="text-3xl font-black text-indigo-600 tracking-tight">
-              ₹
-              {grandTotal.toLocaleString("en-IN", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
+
+          {/* Total Meters Breakdown */}
+          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
+            <div className="text-center sm:text-left">
+              <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">
+                Total Meters
+              </p>
+              <p className="text-2xl font-bold text-slate-800">
+                {totalMetersExcept36.toFixed(2)}m
+              </p>
+            </div>
+            <div className="text-center sm:text-right">
+              <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">
+                Total 3.6 Meters
+              </p>
+              <p className="text-2xl font-bold text-emerald-600">
+                {totalMeters36.toFixed(2)}m
+              </p>
+            </div>
           </div>
         </div>
       </div>
